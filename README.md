@@ -2,7 +2,8 @@
 
 *Euridice* [eu.riˈdi.tʃe/] is a bash script that takes a video URL from a medium supported by `youtube-dl` and outputs a PDF document consisting of the unique frames of that video.
 
-It's name is taken from that of [Orpheus' wife](https://www.youtube.com/watch?v=_7Wo-3Dtl34) in Greek mythology. Her name is derived from the words *ευρύς*, "wide" and *δικη*, "justice”, and serves as a metaphor for the educational and ethical gap this script was designed to bridge.
+Its name is taken from that of [Orpheus' wife](https://www.youtube.com/watch?v=_7Wo-3Dtl34) in Greek mythology.
+Her name is derived from the words *ευρύς*, "wide" and *δικη*, "justice”, and serves as a metaphor for the educational and ethical gap this script was designed to bridge.
 
 ## Requirements
 
