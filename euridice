@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# if there's input from stdin, link variable is set to it
+# else, it is set to first argument
+if [ ${#} -eq 0 ]
+then
+    if [ -p "/dev/stdin" ]
+    then
+	link="$(cat)"
+    fi
+else
+    link="${1}"
+fi
+
+# if link variable is empty, return instructions
+if [ -z "$link" ]
+        then
+	printf ">Input a link as an argument, like this:\n\neuridice youtu.be/pUibDXLseW8\n\n>or through stdin, like this:\n\n(some command that outputs a YT link) | euridice\n"
+        exit
+        else
+
+# get the format id for the highest resolution video-only format available for download
+	formatid="$(youtube-dl -F "$link" | awk '/video only/ {printf $3FS$1FS$2; for (i=4; i<=NF; i++) printf FS$i; print NL}'| sort | head -n 1 | cut -d' ' -f2)"
+
+
+# if no video-only format is available, download best video quality format
+        if [ -n "$formatid" ] ; then
+        	youtube-dl --output "video.%(ext)s" -f "$formatid" "$link"
+        else
+        	youtube-dl --output "video.%(ext)s" -f bestvideo "$link"
+        fi
+
+# separate video by frames (1 every 2 seconds)
+        ffmpeg -i video.* -r 1/2 -qscale:v 2 output_%04d.jpg &&
+
+# first filtering of image files, based on filesize and md5sum
+        rdfind -deleteduplicates true . &&
+
+# second filtering, based on image similarity using ImageMagick
+	pairs=($(ls ./*.jpg))
+
+	for (( i=0 ; i<${#pairs[@]} ; i+=1 )) ; do
+		left=${pairs[i]}
+		right=${pairs[i+1]}
+		difffile="difference$i.png"
+
+		[ -z "$right" ] && printf "\nFinished generating comparsion files\n" || magick compare -compose src $left $right $difffile
+	done
+
+	for (( i=0 ; i<${#pairs[@]} ; i+=1 )) ; do
+		left=${pairs[i]}
+		right=${pairs[i+1]}
+		difffile="difference$i.png"
+
+		[ -z "$right" ] && printf "\n\nFinished image-based comparison\n" || echo "$(magick compare -metric NCC $left $right $difffile 2>&1)" >> diff
+	done
+
+	difftable="$(ls *.jpg | tail -n +2 | paste -d' ' diff -)"
+	echo "$difftable" > diff
+
+# Filter files that are the same image by outputting only the lines in the diff
+# whose 1st column is above the 0.97 threshold; send the output lines into rm
+# to delete duplicated images.
+	rmlist=($(awk '$1 > 0.97 {print $2}' diff))
+
+	for (( i=0 ; i<${#rmlist[@]} ; i+=1 )) ; do
+		rm -v "${rmlist[$i]}"
+	done
+
+
+# convert remaining images into a single pdf
+        magick convert ./*.jpg -quality 100 out.pdf
+# remove tempfiles
+	rm ./*.jpg ./*.png ./video.* ./results.txt ./diff
+
+        fi
